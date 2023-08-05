@@ -1,0 +1,201 @@
+from tkinter import *
+# solves the issue of button text not appearing on OSX, see https://stackoverflow.com/questions/59006014/python-tkinter-button-text-is-not-visible
+from tkinter import ttk
+import random
+
+# quit subroutine
+def quit():
+    main_window.destroy()
+
+# generate a random receipt number between 1000000 and 9999999
+def generate_receipt_number():
+    return random.randint(1000000, 9999999)
+
+# add the next item to the list and automatically print the details
+def append_name():
+    # append each item to its own part of the list
+    hire_details.append([entry_name.get(), selected_item.get(), entry_hires.get()])
+
+    # Print the current contents of hire_details
+    print("updated hire_details:", hire_details)
+
+    # clear the boxes
+    entry_name.delete(0, 'end')
+    entry_hires.delete(0, 'end')
+    counters['total_entries'] += 1
+
+    # Automatically print the details after adding a new entry
+    print_hire_details()
+
+# print details of the hired items
+def print_hire_details():
+    # Clear the Treeview before updating
+    for row in treeview.get_children():
+        treeview.delete(row)
+
+    # Add each item in the list into its own row
+    for index, hire_data in enumerate(hire_details):
+        receipt_number = generate_receipt_number()  # Generate random receipt number for each order
+        hire_data.append(str(receipt_number))  # Append the receipt number to hire_data
+        treeview.insert("", "end", values=[index, hire_data[0], hire_data[1], hire_data[2], hire_data[3]])
+
+
+#Check that inputs are valid
+def check_inputs():
+    input_check = 0
+    #set error text if name is blank   
+    if len(entry_name.get()) == 0:
+        Label(main_window, fg="red", text="Required").grid(column=2,row=0)
+        input_check = 1
+    #set error text if Item hired is blank     
+    if len(selected_item.get()) == 0:
+        Label(main_window, fg="red", text="Required").grid(column=2,row=1)
+        input_check = 1
+    #set error text of number of items is blank and not between 1 and 500  
+    if entry_hires.get().isdigit(): 
+        if int(entry_hires.get()) < 1 or int(entry_hires.get()) > 500:
+            Label(main_window, fg="red", text="1-500 only").grid(column=2,row=2)
+            input_check = 1
+    else:
+        Label(main_window, fg="red", text="1-500 only").grid(column=2,row=2)
+        input_check = 1
+
+    if input_check == 0:
+        append_name() 
+
+#delete a row from the list
+def delete_row():
+    # Find row to delete and delete it
+    row_to_delete = delete_item.get()
+    if row_to_delete.isdigit():
+        row_to_delete = int(row_to_delete)
+        if 0 <= row_to_delete < counters['total_entries']:
+            del hire_details[row_to_delete]
+            counters['total_entries'] -= 1
+
+            # Print the current contents of hire_details after deletion
+            print("updated hire_details after deletion:", hire_details)
+
+            row_counter = counters['row_counter']
+            delete_item.delete(0, 'end')
+            # Clear the last item displayed on the GUI
+    
+
+            # Print all the items in the list
+            print_hire_details()
+        else:
+            Label(main_window, fg="red", text="Invalid row number").grid(column=2, row=3)
+    else:
+        Label(main_window, fg="red", text="Invalid row number").grid(column=2, row=3)
+
+# Validate the name input to allow only letters
+def validate_name_input(P):
+    return P.isalpha() or P == ""
+
+# Validate the No of items hired input to allow only integers
+def validate_hires_input(P):
+    return P.isdigit() or P == ""
+
+#create the buttons and labels
+def setup_buttons():
+    # Make style variable for colours
+    style = ttk.Style()
+    style.theme_use("default")
+
+    # Create a custom font for the buttons
+    button_font = (" Times New Roman", 12)
+
+    # Set the font for the Mod.TButton style (applies to all buttons with this style)
+    style.configure("Mod.TButton", font=button_font)
+
+    # Create a custom font for the printed details (regular style, not bold)
+    details_font = (" Times New Roman", 10)
+
+    # Set the font for the Label widgets displaying hire details
+    style.configure("Details.TLabel", font=details_font)
+
+    # Create a custom font for the column headings (bold)
+    headings_font = ("Helvetica", 10, "bold")
+
+    # Set the font for the Label widgets displaying column headings
+    style.configure("Headings.TLabel", font=headings_font)
+
+    style.map("Mod.TButton",
+              background=[("active", "red"), ("!active", "#dca2de")],
+              foreground=[("active", "yellow"), ("!active", "black")])
+    #Create all the labels and buttons with padding to make it neater
+    #put them in the right grid position
+    #Modify the font for the labels
+    ttk.Label(main_window, text="Name", font=(" Times New Roman", 12)).grid(column=0, row=0, sticky=E, pady=5)
+    ttk.Label(main_window, text="Item Hired", font=(" Times New Roman", 12)).grid(column=0, row=1, sticky=E, pady=5)
+    ttk.Label(main_window, text="No of Items", font=(" Times New Roman", 12)).grid(column=0, row=2, sticky=E, pady=5)
+    ttk.Label(main_window, text="Row #", font=(" Times New Roman", 12)).grid(column=3, row=2, sticky=W, padx=10, pady=5)
+
+     # Modify the font for the buttons
+    ttk.Button(main_window, text="Quit", command=quit, width=10, style='Mod.TButton').grid(column=4, row=0, sticky=E, pady=5)
+    ttk.Button(main_window, text="Record Details", command=check_inputs, style='Mod.TButton').grid(column=0, row=3, pady=5)
+    ttk.Button(main_window, text="Delete Row", command=delete_row, width=10, style='Mod.TButton').grid(column=5, row=2, sticky=E, pady=5)
+    
+    #create entry box for name allowing letters only
+    global entry_name
+    entry_name = Entry(main_window, validate="key", validatecommand=(entry_name.register(validate_name_input), "%P"))
+    entry_name.grid(column=1, row=0)
+
+    #create entry box for No of Items Hired allowing integers only
+    global entry_hires
+    entry_hires = Entry(main_window, validate="key", validatecommand=(entry_hires.register(validate_hires_input), "%P"))
+    entry_hires.grid(column=1, row=2)
+
+ # Create entry box for "Row #" with adjusted size
+    global delete_item
+    delete_item = Entry(main_window, width=5)
+    delete_item.grid(column=4, row=2)
+    #Dropdown menu for item hired
+    items = ["Helium balloons", "Hats", "Confetti", "Sound System","Candles","Ribbons","Tablecloth"]
+    global selected_item
+    selected_item = StringVar(main_window)
+    dropdown_menu = ttk.Combobox(main_window, textvariable=selected_item, values=items, state="readonly")
+    dropdown_menu.grid(column=1, row=1, pady=5)
+
+
+#start the program running
+def main():
+    setup_buttons()
+    main_window.configure(bg="#e899dc")
+    main_window.title("Julies Party Hire Store")  # Set the title before mainloop()
+
+    # Set the background colour of the main window
+    main_window.config(bg="#e899dc")  
+    # Create Treeview widget
+    global treeview
+    treeview = ttk.Treeview(main_window, columns=("row", "full_name", "item_hired", "no_of_items_hired", "receipt_number"), show="headings")
+    treeview.heading("row", text="Row")
+    treeview.heading("full_name", text="Full Name")
+    treeview.heading("item_hired", text="Item Hired")
+    treeview.heading("no_of_items_hired", text="No of Items Hired")
+    treeview.heading("receipt_number", text="Receipt Number")
+    treeview.grid(row=8, column=0, columnspan=5, pady=5)
+
+    # Scrollbar for Treeview
+    scrollbar = ttk.Scrollbar(main_window, orient="vertical", command=treeview.yview)
+    scrollbar.grid(row=8, column=5, sticky="ns")
+    treeview.config(yscrollcommand=scrollbar.set)
+
+    # Create empty list for hire details
+    global hire_details
+    hire_details = []
+
+    main_window.geometry("1100x400")
+
+    main_window.mainloop()
+    
+#create empty list for hire details and empty variable for entries in the list
+counters = {'total_entries': 0, 'row_counter': 0}
+hire_details = []    
+main_window = Tk()    
+entry_name = Entry(main_window)
+entry_name.grid(column=1, row=0)
+entry_hires = Entry(main_window)
+entry_hires.grid(column=1, row=2)
+
+main()
